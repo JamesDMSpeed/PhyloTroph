@@ -39,6 +39,6 @@ mam$IUCN.Status.1.2 <- factor(mam$IUCN.Status.1.2, levels=c("EP", "EX", "EW", "C
 
 #Read in all current range data
 # Load maps of these marsupial species
-maps.current <- paste0("Data/Ranges/Current/", marsupials$Binomial.1.2, ".tif")
-maps.current #List of files
+maps.current <- paste0("Data/Ranges/Current/", mam$Binomial.1.2, ".tif")
+maps.current #List of files #Check they are all there
 r.current <- stack(maps.current)#Stack up
