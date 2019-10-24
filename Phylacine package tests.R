@@ -42,3 +42,15 @@ mam$IUCN.Status.1.2 <- factor(mam$IUCN.Status.1.2, levels=c("EP", "EX", "EW", "C
 maps.current <- paste0("Data/Ranges/Current/", mam$Binomial.1.2, ".tif")
 maps.current #List of files #Check they are all there
 r.current <- stack(maps.current)#Stack up
+
+#Transform norway to raster data crs
+norway<-spTransform(norway,crs(r.current))
+
+#Crop distribution maps to Norway
+norwayranges<-crop(r.current,norway)
+
+#Subset layers with presnece within Norway
+norwayspranges<-norwayranges[[which(cellStats(norwayranges,max)>0)]]                       
+
+#List mammals in Norway
+names(norwayspranges)
