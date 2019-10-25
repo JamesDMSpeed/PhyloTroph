@@ -54,3 +54,6 @@ norwayspranges<-norwayranges[[which(cellStats(norwayranges,max)>0)]]
 
 #List mammals in Norway
 names(norwayspranges)
+
+
+#Do some scripts 
