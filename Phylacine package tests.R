@@ -26,8 +26,7 @@ set.seed(42)
 phys <- phy[sample(1:1000, 50)]
 
 # Load simple world map and subset Norway (we can use a better outline later)
-data(wrld_simpl)
-norway <- wrld_simpl[wrld_simpl$NAME == "Norway", ]
+norway <- getData('GADM',country='Norway',level=0)
 plot(norway)
 
 # Load trait data. Remember to always use UTF-8 encoding with PHYLACINE files to avoid weird characters 
@@ -48,12 +47,12 @@ norway<-spTransform(norway,crs(r.current))
 
 #Crop distribution maps to Norway
 norwayranges<-crop(r.current,norway)
-
+#Mask distribution maps to Norway
+norwayrangesm<-mask(norwayranges,norway)
 #Subset layers with presnece within Norway
-norwayspranges<-norwayranges[[which(cellStats(norwayranges,max)>0)]]                       
+norwayspranges<-norwayrangesm[[which(cellStats(norwayrangesm,max)>0)]]                       
 
 #List mammals in Norway
 names(norwayspranges)
 
-
-#Do some scripts 
+writeRaster(norwayspranges,format='GTiff',filename=paste('Data/Ranges/CurrentNorway/',names(norwayspranges)),bylayer=T)
