@@ -73,6 +73,8 @@ norwaymammalsList<-list.files('Data/Ranges/CurrentNorway',full.names=T)
 norwaymammals<-stack(norwaymammalsList)
 #Clean names
 names(norwaymammals)<-substring(names(norwaymammals),3)
+#Write names
+write.table(names(norwaymammals),'Data/NorwayMammalsfromPhylacine.csv')
 
 #In here need to select only terrestrial mammals
 
