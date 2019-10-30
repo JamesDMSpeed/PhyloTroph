@@ -1,8 +1,8 @@
 ###MAKING SUBSET OF TraitsData w/Norwegian mammals
 library(dplyr)
 
-TraitData <- read.csv("Trait_data.csv")
-NorMammalsList <- read.csv("NorwayMammalsfromPhylacine.csv")
+TraitData <- read.csv("Data/Traits/Trait_data.csv")
+NorMammalsList <- read.csv("Data/NorwayMammalsfromPhylacine.csv")
 
 #Removing the number and empty space in front of the species names in NorMammalsList
 MammalNames <- gsub('[[:digit:]]+', '', NorMammalsList$x)
@@ -19,23 +19,26 @@ NorSpecies <- TraitData %>%
 #NamesM <- as.character(NorMammals$Binomial.1.2)
 #NamesM <-substring(NamesM,2)
 
+#Only terrestrial species (omit also terrestrial + marine spp e.g. seals)
+NorTerrSpecies<-NorSpecies[NorSpecies$Marine==0,]
+dim(NorTerrSpecies)#58 species
 ###HISTOGRAMS###
 #Frequency
-hist(NorSpecies$Diet.Plant,
+hist(NorTerrSpecies$Diet.Plant,
      main = "Histogram of Plant diet",
      xlab = "Percentage of plant in diet")
 
 #Probability density
-hist(NorSpecies$Diet.Plant,
+hist(NorTerrSpecies$Diet.Plant,
      main = "Histogram of Plant diet",
      xlab = "Percentage of plant in diet",
      prob = TRUE)
 
 
-hist(NorSpecies$Diet.Invertebrate)
+hist(NorTerrSpecies$Diet.Invertebrate)
 
-hist(NorSpecies$Diet.Vertebrate)
+hist(NorTerrSpecies$Diet.Vertebrate)
 
 library(MASS)
-truehist(NorSpecies$Diet.Plant)
-lines(density(NorSpecies$Diet.Plant))
+truehist(NorTerrSpecies$Diet.Plant)
+lines(density(NorTerrSpecies$Diet.Plant))
