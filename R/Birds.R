@@ -5,7 +5,7 @@ library(raster)
 library(sf)
 library(fasterize)
 
-bird <- readOGR("Norway_bird.shp")
+bird <- readOGR("Data/Ranges/Birds/Norway_bird.shp")
 bird1 <- bird
 birdTrans1<-spTransform(bird1,crs("+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs"))
 e<-extent(birdTrans1)
