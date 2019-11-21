@@ -1,22 +1,43 @@
+#Script to crop out polygons of birds outside Norway
+#Save and read into R via box, avoiding large file sizes.
+
 
 library(raster)
 library(rgdal)
-library(raster)
-library(sf)
-library(fasterize)
+library(utils)
 
-bird <- readOGR("Data/Ranges/Birds/Norway_bird.shp")
-bird1 <- bird
-birdTrans1<-spTransform(bird1,crs("+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs"))
-e<-extent(birdTrans1)
-s<-raster(e, resolution=10000, crs=(birdTrans1))
-birdSF <- st_as_sf(birdTrans1)
-#one layer per species, so here 98 distribution maps
-birdstacked<-fasterize(birdSF,s,by="SCINAME")
-plot(birdstacked)
-#merge polygons per species for species richness map
-birdPoly<-aggregate(birdTrans1,by="SCINAME")
-birdPoly2<-st_as_sf(birdPoly)
-#count number of overlapping polygons (which is 1 per species so counting gives richness)
-birdrichness <- fasterize(birdPoly2,s,fun="count",field="SCINAME")
-plot(birdrichness)
+#Read data from BOTW From server, and crop to Norway
+#This section is commented out
+
+# #BOTW
+# fc_list = ogrListLayers(path.expand('~/bio3D/BOTW/BOTW_2016.gdb'))
+# print(fc_list)
+# botw<-readOGR(dsn=path.expand('~/bio3D/BOTW/BOTW_2016.gdb'),layer="All_Spp")
+# 
+ norway<-getData('GADM',country='NOR',level=0)
+# 
+# bon<-botw[norway,]
+# writeOGR(bon,dsn='Data/Ranges/Birds',layer='BirdsofNorway',driver='ESRI Shapefile')
+# 
+# #Save as a zip file
+# zip('Data/Ranges/Birds/BirdsofNorway',files=list.files('Data/Ranges/Birds',pattern = 'BirdsofNorway*',full.names = T))
+# #Upload this to a box, and get direct download link
+
+#Download
+birdtempfile<-tempfile()
+download.file('https://ntnu.box.com/shared/static/bg0bzgzh6jokiji53gvgbxcvnzp0j8kk.zip',birdtempfile)
+unzip(birdtempfile)
+unlink(birdtempfile)
+
+#Read as spatial polygons
+birdsnorway<-readOGR('Data/Ranges/Birds/','BirdsofNorway')
+birdsnorway
+#251 species - may include species not overlapping with Norway land (only cropped to extent, not to outline)
+#Also includes vagrant species - these will most likely be excluded from further analyses
+#See here for further information http://datazone.birdlife.org/species/spcdistPOS
+
+#List species
+levels(birdsnorway@data$SCINAME)
+tapply(birdsnorway@data$SCINAME,birdsnorway@data$ORIGIN,length)#3 introduced and 1 vagrant species
+
+plot(birdsnorway[birdsnorway$SCINAME=='Corvus corax',])#Whole range of species overlapping with Norway. Not a problem when we come to rasterize the data.
