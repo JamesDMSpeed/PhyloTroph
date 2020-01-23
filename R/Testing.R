@@ -10,13 +10,11 @@ library(tmap)
 library(dplyr)
 
 #Problems with reading in files
-#repN <- readOGR("C:/Phylotroph/Data/Ranges/Reptiles", "NorwayReptiles")
-#repN <- readOGR(dsn = ".", layer = "NorwayReptiles")
-#repN <- readOGR(".","NorwayReptiles")
-#amphN <- readOGR ('Data/Ranges/Amphibians/','amphibian_Norway_IUCN')
+repN <- readOGR("Data/Ranges/Reptiles", "NorwayReptiles")
+amphN <- readOGR ('Data/Ranges/Amphibians','amphibian_Norway_IUCN')
 
 #Reading shapefile and layer into spatial vector object
-mamN <- readOGR("C:/Phylotroph/Data/Ranges/Mammals")
+mamN <- readOGR("Data/Ranges/Mammals")#Should be read from repository project directory, not local drive
 mamN1 <- mamN
 
 List <- c('Pusa hispida','Cystophora cristata','Halichoerus grypus','Phoca vitulina','Erignathus barbatus')
