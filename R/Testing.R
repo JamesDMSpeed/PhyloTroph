@@ -17,6 +17,13 @@ amphN <- readOGR ('Data/Ranges/Amphibians','amphibian_Norway_IUCN')
 mamN <- readOGR("Data/Ranges/Mammals")#Should be read from repository project directory, not local drive
 mamN1 <- mamN
 
+##Subset from species from Artsdatabanken
+NorTerrMam <- read.csv("Data/Rodlista_terrestrisk.csv")
+NorList <- levels(NorTerrMam$Vitenskapelig_navn)
+NorMam <- subset(mamN1,mamN1@data$BINOMIAL%in% NorList)
+##Still contain doubles of Ursus arctos (4), Castor fiber (2), Mytois natteri (2)
+##54 recors, 5 extras
+
 List <- c('Pusa hispida','Cystophora cristata','Halichoerus grypus','Phoca vitulina','Erignathus barbatus')
 #mamN1 <- filter(mamN1@data$BINOMIAL, !(BINOMIAL %in% List))
 mamN1 <-mamN1[mamN1@data$BINOMIAL != c('Halichoerus grypus','Phoca vitulina'),]
