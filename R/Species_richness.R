@@ -109,7 +109,7 @@ pacman::p_load(raster,
 
   #merge polygons per species for species richness map, unioning geometries 
   #ERROR!!
-  speciesPoly_bird<-aggregate(birdTrans1,by="SCINAME") #ERROR!
+  speciesPoly_bird<-aggregate(birdSF,by="SCINAME") #ERROR!
   speciesPoly2_bird<-st_as_sf(speciesPoly_bird)
   richnessMap_bird <- fasterize(speciesPoly2_bird,s_bird,fun="count",field="SCINAME")
   plot(richnessMap_bird)
