@@ -1,37 +1,48 @@
 ###Load Elton traits data
 library(dplyr)
+library (rgdal)
+library(sp)
 
 #####Load data####
-traitDataMam <- read.table("MamFuncDat.txt", sep = '\t', header = T, fill = T)
-View(traitDataMam)
-##BIRDS
-traitDataBird <- read.table("BirdFuncDat.txt", sep = '\t',header = T, fill = T, quote ='')
-View(traitDataBird)
+#Mammals
+traitDataMam <- read.table("Data/MamFuncDat.txt", sep = '\t', header = T, fill = T)
+
+#Birds
+traitDataBird <- read.table("Data/BirdFuncDat.txt", sep = '\t',header = T, fill = T, quote ='')
+
+#Amphibians
+traitDataAmph <- read.csv("Data/Traits/AmphiBIO_v1.csv")
+
+#####AMPHIBIANS####
+#Read list of species, extracted from shapefile (ampN) Sillero
+NamesAmph <- read.csv("Data/NorwayAmphibians.csv")
+NamesAmph_L <- levels(NamesAmph$x)
+#Make subset from AmphiBIO made up of norwegian amphibians
+NorAmph <- traitDataAmph %>%
+  filter(Species %in% NamesAmph_L)
+
 
 #####BIRDS####
-#List of species in Norway from Handbook of the Birds of the World (?)
-birdN <- readOGR("Birds_","Birbies_fix")
-birdN1 <- birdN
-norBirds <- levels(birdN1@data$SCINAME) #251 different bird species
-
+#Read list of birds, extracted from birds shapefile
+NamesBird <- read.csv("Data/NorwayBirds.csv")
+NamesBird_L <- levels(NamesBird$x)
 #Making a subset of traitDataBird that consists only of birds found in Norway(from norBirds)
-NorSpecies_birds <- traitDataBird %>%
-  filter(Scientific%in% norBirds)
+NorBirds <- traitDataBird %>%
+  filter(Scientific%in% NamesBird_L)
+#There's supposed to be 251 species, based on data from birdN1, but Pinguinus impennis is extinct
 
-#Checking if all of the species from the shapefile is within Eltontraits
-#####MISSING BIRDS####
-#List of species found in Elton traits
-eltonBirds <- as.character(NorSpecies_birds$Scientific)
-#Find species BirdN1 thats not in eltonBirds, and make a list of those species
-x <- setdiff(norBirds,eltonBirds)
+##Categorize species
+B.invertebrates <- NorBirds[NorBirds$Diet.Inv>=70,] #83
 
-#Read list of species that were not missing from BirdN1, but had different names
-missing_birds_ <- read.csv("missing_birds_.csv")
-#Make subset of those 'missing species'
-NorSpecies_birds2 <- traitDataBird %>% 
-  filter(Scientific %in% missing_birds_$x)
+B.plants <- NorBirds[NorBirds$Diet.Seed>=70, ]
 
-#####
+#& NorBirds$Diet.Nect >=70
+                     #& NorBirds$Diet.Seed >=70
+                     #& NorBirds$Diet.PlantO >=70,]
 
-NorTraitDataBird <- rbind(NorSpecies_birds,NorSpecies_birds2) #250 observations, Pinguinus impennis is missing (extint)
-View(NorTraitDataBird)
+#Check species with not more than 70% of any diet
+View(NorTerrSpecies[NorTerrSpecies$Diet.Vertebrate<=70 
+                    & NorTerrSpecies$Diet.Invertebrate<=70
+                    & NorTerrSpecies$Diet.Plant<=70,])#14
+
+
