@@ -16,7 +16,7 @@ pacman::p_load(raster,
 
 library(sp)
 
-setwd("C:/Users/Kjers/OneDrive/Dokumenter/9.-10. semester/Master/Master_prooject")
+#setwd("C:/Users/Kjers/OneDrive/Dokumenter/9.-10. semester/Master/Master_prooject")
 
 ####Reading shapefiles####
 #Reading shapefile for mammal
