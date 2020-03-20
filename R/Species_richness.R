@@ -78,12 +78,12 @@ e_mam<-extent(mamTrans2)
 s_mam<-raster(e_mam, resolution=20000, crs=(mamTrans2))
 mamSF2 <- st_as_sf(mamTrans2)
 #Rasterize set of polygons (sf to raster)
-stackedDistributionMaps_mam<-fasterize(mamSF2,s_mam,by="BINOMIAL") #rasterbrick
+stackedDistributionMaps_mam<-fasterize(mamSF2,plantN1,by="BINOMIAL") #rasterbrick
 #merge polygons per species for species richness map, unioning geometries 
 speciesPoly_mam<-aggregate(mamTrans2,by="BINOMIAL")
 speciesPoly2_mam<-st_as_sf(speciesPoly_mam)
 #count number of overlapping polygons (which is 1 per species so counting gives richness)
-richnessMap_mam <- fasterize(speciesPoly2_mam,s_mam,fun="count",field="BINOMIAL")
+richnessMap_mam <- fasterize(speciesPoly2_mam,plantN1,fun="count",field="BINOMIAL")
 
 ####SR AMPHIBIANS####
 amphTrans1<-spTransform(amphN1,crs(plantSR))
