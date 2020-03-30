@@ -1,5 +1,5 @@
 ### Making species richness maps
-###loading library####
+####loading library####
 library(pacman)
 pacman::p_load(raster,
                rgdal,
@@ -17,7 +17,10 @@ pacman::p_load(raster,
                spatial.tools,
                plyr,
                tidyverse,
-               rgeos,update = F)
+               stats,
+               rgeos,
+               reshape,
+               reshape2,update = F)
 
 ####READING SHAPEFILES####
 #Reading shapefile for mammal
@@ -81,15 +84,8 @@ RemoveSpecies <- c("Cystophora cristata","Erignathus barbatus",
                    "Halichoerus grypus","Phoca vitulina","Pusa hispida","Dama dama",
                    "Micromys minutus")
 mamN2 <- subset(mamN1,!(mamN1@data$BINOMIAL%in% RemoveSpecies)) #55 species
-
-#mamTrans1 <- spTransform(mamN1,crs(plantSR))
-#e_mam <- extent(mamTrans1)
-#s_mam <- raster(e_mam, resolution=20000, crs(mamTrans1))
-#mamSF <- st_as_sf(mamTrans1)
-#stackedDistributionMaps_mam<-fasterize(mamSF,plantN1,by="BINOMIAL")
-#speciesPoly_mam<-aggregate(mamTrans1,by="BINOMIAL")
-#speciesPoly2_mam<-st_as_sf(speciesPoly_mam)
-#richnessMap_mam <- raster::rasterize(speciesPoly2_mam,plantN1,fun="count",field="BINOMIAL")
+#Remove polygons with species that are extinct
+mamN2 <- mamN2[mamN2@data$LEGEND != "Extinct",]
 
 mamTrans2<-spTransform(mamN2,crs(plantSR))
 #st_as_sf: convert object to sf-object (dataframe w/attributes and geometry)
@@ -103,7 +99,7 @@ speciesPoly_mam2<-aggregate(mamTrans2,by="BINOMIAL")
 speciesPoly2_mam2<-st_as_sf(speciesPoly_mam2)
 #count number of overlapping polygons (which is 1 per species so counting gives richness)
 richnessMap_mam2 <- fasterize(speciesPoly2_mam2,plantN1,fun="count",field ="BINOMIAL")
-spplot(richnessMap_mam2, zlim=c(16,39))
+#spplot(richnessMap_mam2, zlim=c(16,39))
 
 ####SR AMPHIBIANS####
 amphTrans1<-spTransform(amphN1,crs(plantSR))
@@ -116,7 +112,7 @@ speciesPoly2_amph<-st_as_sf(speciesPoly_amph)
 richnessMap_amph <- fasterize(speciesPoly2_amph,plantN1,field="amp")
 plot(richnessMap_amph)
 
-#####STACKED AMPHIBIANS####  
+####STACKED AMPHIBIANS####  
 ##buf_buf
 stacked_bufo<-fasterize(amphSF,plantN1,by="buf_buf")#rasterbrick
 #Remove buf_buf = 0
@@ -259,7 +255,7 @@ stackedDistributionMaps_bird2<-fasterize(birdSF2,plantN1,by="SCINAME")
 speciesPoly_bird2<-raster::aggregate(birdTrans2,by="SCINAME")
 speciesPoly2_bird2<-st_as_sf(speciesPoly_bird2)
 richnessMap_bird2 <- fasterize(speciesPoly2_bird2,plantN1,fun="count",field="SCINAME")
-plot(richnessMap_bird2)
+plot(richnessMap_bird2) 
 
 ####SR TOTAL####
 r1 <- plantN1
@@ -277,7 +273,7 @@ stackValdf$total <- rowSums(stackValdf[,2:6], na.rm = T, dims = 1)
 View(stackValdf)
 plot(stackValdf$PlantSR,stackValdf$MammalSR)
 
-#####LOAD TRAIT DATA####
+####LOAD TRAIT DATA####
 #Trait data Mammals
 traitDataMam <- read.table("MamFuncDat.txt", sep = '\t', header = T, fill = T)
 NorMam <- traitDataMam %>%
@@ -290,7 +286,7 @@ NorAmphNames <- c('Bufo bufo','Lissotriton vulgaris','Pelophylax lessonae','Rana
 NorAmph <- traitDataAmph %>%
   filter(Species%in% NorAmphNames) #6
 
-#####MAMMALS ELTON GROUPS####
+####MAMMALS ELTON GROUPS####
 MamHerbi <- NorMam[NorMam$Diet.PlantO>=70,] #11
 nameMamHerbi<- MamHerbi$Scientific
 
@@ -338,7 +334,8 @@ BirdCarni <- rbind((NorBirdTerr[NorBirdTerr$Diet.Vend >=50,]),
                    (NorBirdTerr[NorBirdTerr$Diet.Scav>=50])) #36
 nameBirdCarni<- BirdCarni$Scientific
 
-BirdInverti <- NorBirdTerr[NorBirdTerr$Diet.Inv>=50,] #114
+BirdInverti <- NorBirdTerr[NorBirdTerr$Diet.Inv>=50,] #113
+BirdInverti <- BirdInverti[BirdInverti$Scientific != "Podiceps grisegena",]
 nameBirdInverti <- BirdInverti$Scientific
 
 BirdOmni <- NorBirdTerr[NorBirdTerr$Diet.Inv<50&
@@ -350,8 +347,8 @@ BirdOmni <- NorBirdTerr[NorBirdTerr$Diet.Inv<50&
                           NorBirdTerr$Diet.Seed<70&
                           NorBirdTerr$Diet.PlantO<70,] #55
 nameBirdOmnivore <- BirdOmni$Scientific
-##Total of 226 species? Podiceps grisegena in both carnivore and insectivore (eats fish % invertebrates)
-##Artsdatabanken rødliste kategori NA
+
+##Total of 225 species? 
 checkBird <-  NorBirdTerr%>%
   filter((!(Scientific %in% BirdCarni$Scientific))&
            !(Scientific %in% BirdHerbi$Scientific)&
@@ -363,18 +360,19 @@ checkBird <-  NorBirdTerr%>%
 AmphInverti <- NorAmph[NorAmph$Arthro == 1,] #6
 #AmphOmni <- NorAmph[NorAmph$Vert == 1 & NorAmph$Arthro == 1,] #2
 #NorAmph[is.na(NorAmph$Vert)& NorAmph$Arthro == 1,]
+nameAmphiInverti <- AmphInverti$Species
 AmphInvertSR <- richnessMap_amph
 
 ####REPTILES DIET GROUPS####
-#Based on litterature ()
-#Fog, K., de Lasson, D. R., & Schmedes, A. (1997). Nordens padder og krybdyr: Gad.
-#Spellerberg, I. F. (2002). Amphibians & Reptiles of North-West Europe: Their Natural History, Ecology and Conservation: CRC Press.
-#Ang = invertibrate, Zoo = invertibrate 
-#coranella = carnivore, natrix natrix = carnivore, Vipera = carnivore, 
+#Ang = invertibrate, Zoo = invertibrate,
+#cor = carnivore, nat = carnivore, vip = carnivore, 
 RepInvertSR <- mosaic(richnessMap_ang,richnessMap_zoo,fun="sum") #2
 RepCarniSR <- mosaic(richnessMap_cor, richnessMap_nat, richnessMap_vip,fun="sum")#4
 
-#####GROUPS MAMMALS/FEEDING ####
+nameReptInverti <- as.factor(c("Angius fragilis","Zootoca vipera"))
+nameReptCarni <- as.factor(c("Coronella austriaca","Natrix natrix","Vipera berus"))
+
+####GROUPS MAMMALS/FEEDING ####
 #SR herbivore mammals
 herbivoreMam <- subset(mamN2, BINOMIAL %in% nameMamHerbi)
 herbivoreMamTrans<-spTransform(herbivoreMam,crs(plantSR))
@@ -418,7 +416,7 @@ speciesPoly_OM2 <- st_as_sf(speciesPoly_OM)
 #Adjusting
 mamOmniSR <- fasterize(speciesPoly_OM2,plantN1,fun="count",field="BINOMIAL")
 
-###GROUPS BIRD/FEEDING####
+####GROUPS BIRD/FEEDING####
 #SR herbivore birds
 herbivoreBird <- subset(birdN1, SCINAME %in% nameBirdHerbi)
 herbivoreBirdTrans<-spTransform(herbivoreBird,crs(plantSR))
@@ -471,15 +469,9 @@ names(mammalStack)<-c('mamCarnSR','mamHerbSR','mamInvertSR','mamOmniSR')
 mammalValdf<-raster::extract(mammalStack,(1:ncell(mammalStack)), df = T)
 mammalValdf$total <- rowSums(mammalValdf[,2:ncol(mammalValdf)], na.rm = T, dims = 1)
 #Extract species from each cell from Mammal rasterlayer
-mammalPoly <- raster::extract(stackedDistributionMaps_mam2,(1:ncell(stackedDistributionMaps_mam)), df = T)
+mammalPoly <- raster::extract(stackedDistributionMaps_mam2,(1:ncell(stackedDistributionMaps_mam2)), df = T)
+mammalPoly2 <- mammalPoly
 mammalPoly$total <- rowSums(mammalPoly[,2:ncol(mammalPoly)], na.rm = T, dims = 1)
-
-#x <-(mammalPoly[mammalPoly$total %in% c(1:8), ])
-#x <- x[,-c(4:19, 21:25,27:29,39:41,44:47,49:51)]
-#y <- colnames(x)
-#z <-(mammalPoly[mammalPoly$total %in% c(16:39), ])
-#z <- z[,-c(1:3,20,26,30:38,42:43,48)]
-#v <- colnames(z)
 
 ###Stack birds
 birdStack <- stack(birdCarnSR, birdHerbSR, birdGranSR, birdInvertSR, birdOmnivoreSR)
@@ -488,11 +480,15 @@ birdValdf<-raster::extract(birdStack,(1:ncell(birdStack)), df = T)
 birdValdf$total <- rowSums(birdValdf[,2:ncol(birdValdf)], na.rm = T, dims = 1)
 #Extract species within each cell from bird rasterlayer
 birdPoly <- raster::extract(stackedDistributionMaps_bird2,(1:ncell(stackedDistributionMaps_bird2)), df = T)
+birdPoly2 <- birdPoly[,-1]
 birdPoly$total <- rowSums(birdPoly[,2:ncol(birdPoly)], na.rm = T, dims = 1)
 
 ###Amphibian
 #Extract which amphibians are in which cell
 amphPoly <- raster::extract(stackedDistributionMaps_amph2,(1:ncell(stackedDistributionMaps_amph2)), df = T)
+amphPoly2 <- amphPoly[,-1]
+names(amphPoly2)<- c("Bufo.bufo","Lissotriton.vulgaris","Pelophylax.lessonae",
+                     "Rana.arvalis","Rana.temporaria","Triturus.cristatus")
 amphPoly$total <- rowSums(amphPoly[,2:ncol(amphPoly)], na.rm = T, dims = 1)
 
 #Reptiles
@@ -502,6 +498,9 @@ reptValdf<-raster::extract(reptileStack,(1:ncell(reptileStack)), df = T)
 reptValdf$total <- rowSums(reptValdf[,2:ncol(reptValdf)], na.rm = T, dims = 1)
 #Extract which reptiles are in which cell
 reptPoly <- raster::extract(stackedDistributionMaps_rep2,(1:ncell(stackedDistributionMaps_rep2)), df = T)
+reptPoly2 <- reptPoly[,-1]
+names(reptPoly2) <- c("Angius.fragilis","Coronella.austriaca","Natrix.natrix",
+                      "Vipera.berus","Zootoca.vipera")
 reptPoly$total <- rowSums(reptPoly[,2:ncol(reptPoly)], na.rm = T, dims = 1)
 
 ###ALL
@@ -512,6 +511,54 @@ names(allStack)<- c('repInvertSR','repCarniSR','amphInvertSR','plantSR','birdHer
 allStackValdf <- raster::extract(allStack,(1:ncell(allStack)), df = T)
 allStackValdf$total <- rowSums(allStackValdf[,2:ncol(allStackValdf)], na.rm = T, dims = 1)
 plot(allStack$plantSR, allStack$birdHerbSR)
+
+####COMBINE ALL POLYGONS####
+allPoly <- bind_cols(mammalPoly2,birdPoly2,amphPoly2,reptPoly2)
+allPoly_molten <- melt(allPoly,id ="ID")
+allPoly_molten <- subset(allPoly_molten, value==1)
+names(allPoly_molten) <-c("ID", "Scientific", "value")
+levels(allPoly_molten$Scientific) <- gsub("\\."," ",levels(allPoly_molten$Scientific))
+
+####Create table with all species (ex. plants) and taxonomic/trophic grouping####
+mammal_latin <- as.character(NorMam$Scientific)
+bird_latin <- as.character(NorBirdTerr$Scientific)
+amph_latin <- as.character(NorAmph$Species)
+rept_latin <- c("Angius fragilis","Coronella austriaca","Natrix natrix",
+                "Vipera berus","Zootoca vipera")
+Scientific <- c(mammal_latin,bird_latin,amph_latin,rept_latin) #286
+table <- data.frame(Scientific)
+#write.table(table$Scientific, file = "Species_list.txt", row.names = F,col.names = F,quote = F, sep = "")
+
+#Make new column which categorize according to taxonomic group (mammal, bird, amph, rept)
+table$taxonomic <- c(1:(length(table$Scientific)))
+table$taxonomic[1:50] <- "mammal"
+table$taxonomic[51:275] <- "bird"
+table$taxonomic[276:281] <- "amphibian"
+table$taxonomic[282:286] <- "reptile"
+table$taxonomic <- as.factor(table$taxonomic)
+
+#Make new column that categorize according to trophic group:
+table$trophic <- if_else(table$Scientific%in%nameBirdInverti |
+                           table$Scientific %in% nameMamInverti |
+                           table$Scientific %in% nameAmphiInverti |
+                           table$Scientific %in% nameReptInverti, "invertivore",
+                         if_else(table$Scientific%in%nameMamCarni |
+                                   table$Scientific%in%nameBirdCarni |
+                                   table$Scientific%in%nameReptCarni,"carnivore",
+                                 if_else(table$Scientific%in%nameBirdGrani |
+                                           table$Scientific%in%nameMamGrani,"granivore",
+                                         if_else(table$Scientific%in%nameMamHerbi |
+                                                   table$Scientific%in%nameBirdHerbi, "herbivore",
+                                                 if_else(table$Scientific%in%nameBirdOmnivore |
+                                                           table$Scientific%in%nameMamOmnivore,"omnivore","NA")))))
+table$trophic <- as.factor(table$trophic)
+
+####Join the table with taxonomic/trophic grouping with df of extracted species within each cell####
+allPoly_merged<- merge(allPoly_molten,table, by="Scientific", all.x = T)
+allPoly_merged <- allPoly_merged[,c(2,1,4,5,3)]
+tableOfSpecies <- allPoly_merged[,-c(5)]
+
+#write.csv(tableOfSpecies, file="Species_table.csv")
 
 #####RASTER OVERLAY####  
 #raster_result <- overlay(r1,r2,r3,r4,r5,fun=function(x,y,z,a,b){return(x+y+z+a+b)})
