@@ -71,8 +71,11 @@ NorBird <- traitDataBird %>%
   filter(Scientific %in% birdN1@data[["SCINAME"]]) #250 
 #Filtering out birds who are predominantly feeding pelagic  
 NorBirdTerr <- NorBird[NorBird$PelagicSpecialist == 0,]
+#write.table(NorBirdTerr$Scientific, file = "Norterrestricbird.txt", row.names = F,col.names = F,quote = F, sep = "")
+
 #Subset birdN1 to the species within NorBirdTerr
 birdN2 <- subset(birdN1, birdN1@data$SCINAME %in% NorBirdTerr$Scientific)
+
 
 ####SR PLANTS####
 GDALinfo("Data/Ranges/Plants/PlantSpeciesRichness.tif")
@@ -89,8 +92,6 @@ mamN2 <- mamN2[mamN2@data$LEGEND != "Extinct",]
 
 mamTrans2<-spTransform(mamN2,crs(plantSR))
 #st_as_sf: convert object to sf-object (dataframe w/attributes and geometry)
-e_mam2<-extent(mamTrans2)
-s_mam2<-raster(e_mam2, resolution=20000, crs=(mamTrans2))
 mamSF2 <- st_as_sf(mamTrans2)
 #Rasterize set of polygons (sf to raster)
 stackedDistributionMaps_mam2<-fasterize(mamSF2,plantN1,by="BINOMIAL") #rasterbrick
@@ -103,8 +104,6 @@ richnessMap_mam2 <- fasterize(speciesPoly2_mam2,plantN1,fun="count",field ="BINO
 
 ####SR AMPHIBIANS####
 amphTrans1<-spTransform(amphN1,crs(plantSR))
-e_amph<-extent(amphTrans1)
-s_amph<-raster(e_amph, resolution=20000, crs=(amphTrans1))
 amphSF <- st_as_sf(amphTrans1)
 stackedDistributionMaps_amph<-fasterize(amphSF,plantN1,by="amp")
 speciesPoly_amph<-aggregate(amphTrans1,by="amp")
@@ -168,9 +167,6 @@ speciesPoly2_tri <- speciesPoly2_tri[2,]
 #colnames(speciesPoly2_tri)[1] <- "x"
 richnessMap_tri <- fasterize(speciesPoly2_tri,plantN1,field="tri_cris")
 
-#x <- rbind(speicesPoly2_buf2,speciesPoly2_liss,speciesPoly2_pelp,speciesPoly2_ranA,
-#speciesPoly2_ranT,speciesPoly2_tri)
-
 stackedDistributionMaps_amph2 <- stack(stacked_bufo,stacked_liss,stacked_pelp, stacked_ranA,
                                        stacked_ranT,stacked_tri)
 names(stackedDistributionMaps_amph2)<- c('buf_buf','liss_vul','pelp_esc','ran_arv','ran_temp','tri_cris')
@@ -178,8 +174,6 @@ class(stackedDistributionMaps_amph2) #rasterstack instead of -brick - does that 
 
 ####SR REPTILES####
 repTrans1 <-spTransform(repN1,crs(plantSR))
-e_rep<-extent(repTrans1)
-s_rep<-raster(e_rep, resolution=20000, crs=(repTrans1))
 repSF <- st_as_sf(repTrans1)
 stackedDistributionMaps_rep<-fasterize(repSF,plantN1,by="rep")
 speciesPoly_rep<-aggregate(repTrans1,by="rep")
@@ -237,8 +231,6 @@ class(stackedDistributionMaps_rep2) #rasterstack instead of -brick - does that m
 ####SR BIRDS####
 #WITH PELAGIC SPECIALISTS
 #birdTrans1<-spTransform(birdN1,crs(plantSR))
-#e_bird<-extent(birdTrans1)
-#s_bird<-raster(e_bird, resolution=20000, crs=(birdTrans1))
 #birdSF <- st_as_sf(birdTrans1)
 #stackedDistributionMaps_bird<-fasterize(birdSF,plantN1,by="SCINAME")
 #speciesPoly_bird<-raster::aggregate(birdTrans1,by="SCINAME")
@@ -248,8 +240,6 @@ class(stackedDistributionMaps_rep2) #rasterstack instead of -brick - does that m
 
 #WITHOUT PELAGIC SPECIALISTS
 birdTrans2<-spTransform(birdN2,crs(plantSR))
-e_bird2<-extent(birdTrans2)
-s_bird2<-raster(e_bird2, resolution=20000, crs=(birdTrans2))
 birdSF2 <- st_as_sf(birdTrans2)
 stackedDistributionMaps_bird2<-fasterize(birdSF2,plantN1,by="SCINAME")
 speciesPoly_bird2<-raster::aggregate(birdTrans2,by="SCINAME")
@@ -368,8 +358,7 @@ AmphInvertSR <- richnessMap_amph
 #cor = carnivore, nat = carnivore, vip = carnivore, 
 RepInvertSR <- mosaic(richnessMap_ang,richnessMap_zoo,fun="sum") #2
 RepCarniSR <- mosaic(richnessMap_cor, richnessMap_nat, richnessMap_vip,fun="sum")#4
-
-nameReptInverti <- as.factor(c("Angius fragilis","Zootoca vipera"))
+nameReptInverti <- as.factor(c("Anguis fragilis","Zootoca vivipara"))
 nameReptCarni <- as.factor(c("Coronella austriaca","Natrix natrix","Vipera berus"))
 
 ####GROUPS MAMMALS/FEEDING ####
@@ -499,8 +488,8 @@ reptValdf$total <- rowSums(reptValdf[,2:ncol(reptValdf)], na.rm = T, dims = 1)
 #Extract which reptiles are in which cell
 reptPoly <- raster::extract(stackedDistributionMaps_rep2,(1:ncell(stackedDistributionMaps_rep2)), df = T)
 reptPoly2 <- reptPoly[,-1]
-names(reptPoly2) <- c("Angius.fragilis","Coronella.austriaca","Natrix.natrix",
-                      "Vipera.berus","Zootoca.vipera")
+names(reptPoly2) <- c("Anguis.fragilis","Coronella.austriaca","Natrix.natrix",
+                      "Vipera.berus","Zootoca.vivipara")
 reptPoly$total <- rowSums(reptPoly[,2:ncol(reptPoly)], na.rm = T, dims = 1)
 
 ###ALL
@@ -557,13 +546,77 @@ table$trophic <- as.factor(table$trophic)
 allPoly_merged<- merge(allPoly_molten,table, by="Scientific", all.x = T)
 allPoly_merged <- allPoly_merged[,c(2,1,4,5,3)]
 tableOfSpecies <- allPoly_merged[,-c(5)]
-
 #write.csv(tableOfSpecies, file="Species_table.csv")
 
-#####RASTER OVERLAY####  
-#raster_result <- overlay(r1,r2,r3,r4,r5,fun=function(x,y,z,a,b){return(x+y+z+a+b)})
-#plot(raster_result)
-#raster_result
-#spplot(raster_result)
-#table(getValues(raster_result))
-#intersect(nameBirdCarni,nameBirdInsect)
+#####SR MAPS TROPHIC GROPUS####
+###Make SR maps of herbivores
+#Make copy of speciesPoly_HB2 to change the name from "SCINAME" to "BINOMIAL"
+speciesPoly_HB2_cop <- speciesPoly_HB2
+names(speciesPoly_HB2_cop) <- c("BINOMIAL","geometry")
+stackHerbi <- rbind(speciesPoly_HM2, speciesPoly_HB2_cop)
+herbivoreSR <- fasterize(stackHerbi,plantN1,fun="count",field="BINOMIAL")
+
+###SR maps of carnivores
+speciesPoly_CB2_cop <- speciesPoly_CB2
+names(speciesPoly_CB2_cop) <- c("BINOMIAL","geometry")
+#change name and class of 1 column
+speciesPoly2_cor_cop <- speciesPoly2_cor
+names(speciesPoly2_cor_cop) <- c("BINOMIAL","geometry")
+speciesPoly2_cor_cop$BINOMIAL <- as.factor(speciesPoly2_cor_cop$BINOMIAL)
+speciesPoly2_nat_cop <- speciesPoly2_nat
+names(speciesPoly2_nat_cop) <- c("BINOMIAL","geometry")
+speciesPoly2_nat_cop$BINOMIAL <- as.factor(speciesPoly2_nat_cop$BINOMIAL)
+speciesPoly2_vip_cop <- speciesPoly2_vip
+names(speciesPoly2_vip_cop) <- c("BINOMIAL","geometry")
+speciesPoly2_vip_cop$BINOMIAL <- as.factor(speciesPoly2_vip_cop$BINOMIAL)
+
+stackCarni <- rbind(speciesPoly_CB2_cop,speciesPoly_CM2,speciesPoly2_cor_cop,
+                    speciesPoly2_nat_cop,speciesPoly2_vip_cop) #47 species
+carnivoreSR <- fasterize(stackCarni,plantN1,fun="count",field="BINOMIAL")
+
+###SR maps of invertivores
+#reptiles = zoo and ang
+speciesPoly2_ang_cop <- speciesPoly2_ang
+names(speciesPoly2_ang_cop) <- c("BINOMIAL","geometry")
+speciesPoly2_ang_cop$BINOMIAL <- as.factor(speciesPoly2_vip_cop$BINOMIAL)
+speciesPoly2_zoo_cop <- speciesPoly2_zoo
+names(speciesPoly2_zoo_cop) <- c("BINOMIAL","geometry")
+speciesPoly2_zoo_cop$BINOMIAL <- as.factor(speciesPoly2_vip_cop$BINOMIAL)
+
+#amphibians = all species
+speciesPoly2_buf_cop <- speciesPoly2_buf
+names(speciesPoly2_buf_cop) <- c("BINOMIAL","geometry")
+speciesPoly2_buf_cop$BINOMIAL <- as.factor(speciesPoly2_buf_cop$BINOMIAL)
+speciesPoly2_liss_cop <- speciesPoly2_liss
+names(speciesPoly2_liss_cop) <- c("BINOMIAL","geometry")
+speciesPoly2_liss_cop$BINOMIAL <- as.factor(speciesPoly2_liss_cop$BINOMIAL)
+speciesPoly2_pelp_cop <- speciesPoly2_pelp
+names(speciesPoly2_pelp_cop) <- c("BINOMIAL","geometry")
+speciesPoly2_pelp_cop$BINOMIAL <- as.factor(speciesPoly2_pelp_cop$BINOMIAL)
+speciesPoly2_ranA_cop <- speciesPoly2_ranA
+names(speciesPoly2_ranA_cop) <- c("BINOMIAL","geometry")
+speciesPoly2_ranA_cop$BINOMIAL <- as.factor(speciesPoly2_ranA_cop$BINOMIAL)
+speciesPoly2_ranT_cop <- speciesPoly2_ranT
+names(speciesPoly2_ranT_cop) <- c("BINOMIAL","geometry")
+speciesPoly2_ranT_cop$BINOMIAL <- as.factor(speciesPoly2_ranT_cop$BINOMIAL)
+speciesPoly2_tri_cop <- speciesPoly2_tri
+names(speciesPoly2_tri_cop) <- c("BINOMIAL","geometry")
+speciesPoly2_tri_cop$BINOMIAL <- as.factor(speciesPoly2_tri_cop$BINOMIAL)
+
+speciesPoly_IB2_cop <- speciesPoly_IB2
+names(speciesPoly_IB2_cop) <- c("BINOMIAL","geometry")
+
+stackInverti<- rbind(speciesPoly2_ang_cop,speciesPoly2_zoo_cop,speciesPoly2_buf_cop,
+                     speciesPoly2_liss_cop,speciesPoly2_pelp_cop,speciesPoly2_ranA_cop,
+                     speciesPoly2_ranT_cop,speciesPoly2_tri_cop,speciesPoly_IB2_cop,
+                     speciesPoly_IM2) #138 species
+invertivoreSR <- fasterize(stackInverti,plantN1,fun="count",field="BINOMIAL")
+
+###SR Omnivores
+speciesPoly_OB2_cop <- speciesPoly_OB2
+names(speciesPoly_OB2_cop) <- c("BINOMIAL","geometry")
+stackOmni <- rbind(speciesPoly_OB2_cop,speciesPoly_OM2)
+omnivoreSR <- fasterize(stackOmni,plantN1,fun="count",field="BINOMIAL") #69 species
+
+###SR Granivore
+granivoreSR <- fasterize(speciesPoly_GB2,plantN1,fun="count",field="SCINAME")
