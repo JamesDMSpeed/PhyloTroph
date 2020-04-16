@@ -70,5 +70,40 @@ phyloDiv <- pd(my.sample,phylogeny,include.root = F)
 phyloDiv_root <- pd(my.sample,phylogeny,include.root = T)
 
 
+#plants
+library(raster)
+library(sp)
+load("brick_native.RData")
+plot(brick_native)
 
+#remove layer "index_1119" for this, in this layer is the sum of all species (SR) 
+brick_native_new <- dropLayer(brick_native, c("index_1119"))
+
+#check if names match phylogeny
+comm_all <- getValues(brick_native_new)
+comm_all[is.na(comm_all)]<-0
+phydata <- match.phylo.comm(plantPhylo, comm_all) 
+#17 names from cumminity matrix not in phylogeny
+#136 names in phylogeny not in community matrix
+
+#fix names that are different
+colnames(comm_all) <- gsub("\\.", "-", colnames(comm_all))
+
+colnames(comm_all)[237] <- "Celastraceae_Parnassia_palustris"
+colnames(comm_all)[400] <- "LYCO_Isoetaceae_Isoetes_echinospora"
+colnames(comm_all)[401] <- "LYCO_Isoetaceae_Isoetes_lacustris"
+colnames(comm_all)[780] <- "Orobanchaceae_Pedicularis_sceptrum-carolinum"
+colnames(comm_all)[1074] <- "Saxifragaceae_Saxifraga_osloensis"
+
+#fix spelling in phylogeny as well
+plantPhylo$tip.label[plantPhylo$tip.label=="LYCO_Isoetaceae_IsoâˆšÂ´tes_echinospora"] <- "LYCO_Isoetaceae_Isoetes_echinospora"
+plantPhylo$tip.label[plantPhylo$tip.label=="LYCO_Isoetaceae_IsoâˆšÂ´tes_lacustris"] <- "LYCO_Isoetaceae_Isoetes_lacustris"
+plantPhylo$tip.label[plantPhylo$tip.label=="Saxifragaceae_Saxifraga_osloâˆšÂ´nsis"] <- "Saxifragaceae_Saxifraga_osloensis"
+
+phydata <- match.phylo.comm(plantPhylo, comm_all) 
+#1 name from cumminity matrix not in phylogeny (not sure why, this is in the overview for the phylogeny with this name)
+#120 names in phylogeny not in community matrix (these species have probably no occurrences)
+
+pd_plant <- pd(comm_all, plantPhylo, include.root = F)
+pd_plant_root <- pd(comm_all, plantPhylo, include.root = T)
 
