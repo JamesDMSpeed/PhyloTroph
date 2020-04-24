@@ -1,52 +1,31 @@
 ####Phylogenies
-
 library(ape)
 library(picante)
 library(readr)
+library(plyr)
+library(raster)
+library(sp)
 
-#Norway animal phylogeny
-phylogeny <-read.tree('NorTerrSpecies_285.nwk') #Stored as phylo object
+###ANIMAL PHYLOGENY####
+phylogeny <-read.tree('Data/Phylogenies/NorTerrSpecies_285.nwk') #Stored as phylo object
 phylogeny #285 tips and 284 internal nodes - the tree is probably bifurcate
-plot(phylogeny,show.tip.label = F,main='Norway phylogeny')
-plot.phylo(phylogeny, show.tip.label = F, type = 'fan')
+plot.phylo(phylogeny, show.tip.label = F, main="Norway")
 #Check if the phylogeny is rooted and ultrametric
 #is.rooted(phylogeny)  #T
 #is.ultrametric(phylogeny) #T
-head(phylogeny$edge)
-head(phylogeny$tip.label)
-head(phylogeny$node.label)
-tail(phylogeny$node.label)
+#Check names in phylogeny
+head(phylogeny$tip.label) #Missing M.striata. S. Isodon have been removed from SR analsysis (DD)
 
-#Norway plant phylogeny
-
-test <- read.tree('Data/Phylogenies/ArcticBorealHerbivorePhylogeny.newick')
-plot(test, show.tip.label = F)
-is.ultrametric(test)
-
-
-
-plantPhylo <- read.tree('Data/Phylogenies/NorwVascPlantPhylogeny.nwk')
-plot(plantPhylo, show.tip.label = F, main = 'Norway plant phylogeny')
-#is.rooted(plantPhylo) TRUE
-#is.ultrametric(plantPhylo)FALSE
-
-plantPhylo_2 <- read.tree('Data/Phylogenies/Prum_merge_Genera_2016_04_22_Hackett_Stage2_10K_MCC.newick.tre')
-plot(plantPhylo, show.tip.label = F)
-#is.rooted(plantPhylo_2) TRUE
-#is.ultrametric(plantPhylo_2) FALSE 
-
-
-#Read community matrix
-my.sample <- read.table("communityMat.txt",sep="\t", header = T)
-names(my.sample) <- gsub("\\.","_",names(my.sample))
+#Read community matrix (285 species, incl. M.striata)
+my.sample <- read.table("Data/CommunityMat_2.txt",sep="\t", header = T)
+names(my.sample) <- gsub("\\.","_",names(my.sample)) #M.striata included, S.isodon excluded
 my.sample <- my.sample[,-1]
 my.sample[is.na(my.sample)] <- 0
-
-#Species richness at it site, should correspond to values in stackValdf
+#SR at each site(raster cell) - should correspond to values in stackValdf
 rowSums(my.sample) 
 
 #Which species names are in allPoly, but not in the phylogeny?
-x <- c(setdiff(names(my.sample),(phylogeny$tip.label))) #21
+(setdiff(names(my.sample),(phylogeny$tip.label))) #21
 #21 species from my.sample are missing in the phylogeneis. 
 names(my.sample) <- mapvalues((names(my.sample)),
                               c("Emberiza_rustica","Saxicola_torquatus",
@@ -63,21 +42,26 @@ names(my.sample) <- mapvalues((names(my.sample)),
                                 "Lophophanes_cristatus","Poecile_montanus","Poecile_palustris",
                                 "Lyrurus_tetrix","Mareca_penelope","Mareca_strepera",
                                 "Cyanistes_caeruleus","Seicercus_borealis"),warn_missing = T)
+#Missing species?                                      
+setdiff(names(my.sample),(phylogeny$tip.label)) #Muscicapa_striata - couldn't synonym in Timetree
 
-setdiff(names(my.sample),(phylogeny$tip.label)) #Muscicapa_striata - couldn't find alternative names
 #Calculation Faith's PD by using pd function from pixante package
 phyloDiv <- pd(my.sample,phylogeny,include.root = F)
 phyloDiv_root <- pd(my.sample,phylogeny,include.root = T)
 
+###PLANTS####
+#Norway plant phylogeny (Mienna)
+plantPhylo <- read.tree('Data/Phylogenies/NorwVascPlantPhylogeny.nwk')
+plot(plantPhylo, show.tip.label = F, main = 'Norway plant phylogeny')
+#is.rooted(plantPhylo) TRUE
+#is.ultrametric(plantPhylo)#FALSE
 
-#plants
-library(raster)
-library(sp)
+#Load plant distributional data
 load("brick_native.RData")
-plot(brick_native)
 
-#remove layer "index_1119" for this, in this layer is the sum of all species (SR) 
-brick_native_new <- dropLayer(brick_native, c("index_1119"))
+#Extract species layer that is sum of all species (SR)
+layer_1119 <- subset(brick_native,"index_1119")
+brick_native_new <- dropLayer(brick_native, c("index_1119")) #resulting in 1119 species layers
 
 #check if names match phylogeny
 comm_all <- getValues(brick_native_new)
@@ -100,10 +84,15 @@ plantPhylo$tip.label[plantPhylo$tip.label=="LYCO_Isoetaceae_IsoâˆšÂ´tes_ech
 plantPhylo$tip.label[plantPhylo$tip.label=="LYCO_Isoetaceae_IsoâˆšÂ´tes_lacustris"] <- "LYCO_Isoetaceae_Isoetes_lacustris"
 plantPhylo$tip.label[plantPhylo$tip.label=="Saxifragaceae_Saxifraga_osloâˆšÂ´nsis"] <- "Saxifragaceae_Saxifraga_osloensis"
 
+#Also some additional misspellings as well, but they're not in the community matrix anyway
 phydata <- match.phylo.comm(plantPhylo, comm_all) 
-#1 name from cumminity matrix not in phylogeny (not sure why, this is in the overview for the phylogeny with this name)
+#1 species (Dryopteris affinis) only found in matrix, not in phylogeny - 
 #120 names in phylogeny not in community matrix (these species have probably no occurrences)
 
-pd_plant <- pd(comm_all, plantPhylo, include.root = F)
+pd_plant <- pd(comm_all, plantPhylo, include.root = F) #ERROR
 pd_plant_root <- pd(comm_all, plantPhylo, include.root = T)
+View(pd_plant_root)
+
+
+
 
